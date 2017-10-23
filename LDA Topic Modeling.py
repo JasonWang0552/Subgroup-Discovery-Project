@@ -21,7 +21,11 @@ from sklearn.decomposition import LatentDirichletAllocation
 #data = pd.read_json('C:/Users/u656772/Downloads/Data Science Project/Guess-Who-both-versions/parsed_json/face-rating-data-2.json',encoding = 'utf-8')
 
 #data = pd.read_csv('C:/Users/u656772/Downloads/Data Science Project/face-rating-data-1 cleaned.csv')
-#%% Parse out all the key values from demographics and responses columns
+#%% 
+# ------------------------------------------------------------------
+# Parse out all the key values from demographics and responses columns
+# ------------------------------------------------------------------
+
 data['country'] = list(map(lambda x: x['country'], data['demographics']))
 data['age'] = list(map(lambda x: x['age'], data['demographics']))
 data['ethnicity'] = list(map(lambda x: x['ethnicity'], data['demographics']))
@@ -43,7 +47,10 @@ data['typical'] = list(map(lambda x: x['typical'], data['responses']))
 data.drop(['demographics', 'responses'], axis = 1, inplace = True)
 
 
-#%% Text Pre-processing
+#%% 
+# -------------------------------------
+# Text Pre-processing
+# -------------------------------------
 
 def text_preprocessing(text):
     text = text.lower()
@@ -56,7 +63,13 @@ data['physical_description'] = data.physical_description.apply(text_preprocessin
 data['non_physical_description'] = data.non_physical_description.apply(text_preprocessing)
 data.to_csv('C:/Users/u656772/Downloads/Data Science Project/face-rating-data-1 cleaned.csv', index = False, encoding = 'utf-8')
 
-#%% Slicing Descriptions based on face ID
+#%% 
+# -------------------------------
+# LDA Topic Modeling
+# -------------------------------
+
+
+# Read the cleaned csv file
 data = pd.read_csv('D:/School Work/Data Science Project/face-rating-data-1 cleaned.csv')
 
 # Group data by the faceID
@@ -65,9 +78,11 @@ data_face = data.groupby('faceID')
 data_face_non = data_face['non_physical_description'].apply(lambda x: ' '.join(x)).reset_index()
 data_face_phy = data_face['physical_description'].apply(lambda x: ' '.join(x)).reset_index()
 
+# Seperate physical and non-physical description
 non_physical_description = data_face_non['non_physical_description']
 physical_description = data_face_phy['physical_description']
 
+# Define function to print topics
 def print_top_words(model, feature_names, n_top_words):
     for topic_idx, topic in enumerate(model.components_):
         print("Topic #%d:" % topic_idx)
@@ -75,9 +90,11 @@ def print_top_words(model, feature_names, n_top_words):
                         for i in topic.argsort()[:-n_top_words - 1:-1]]))
     print()
 
+# Open Self-defined stopwords file
 with open('D:/School Work/Data Science Project/Stopwords.txt') as stopwords:
     stop_words = [word.strip('\n') for word in stopwords.readlines()]
 
+# Specify parameters for the LDA model
 tfidf_vectorizer = TfidfVectorizer(stop_words = stop_words)
 lda_non = LatentDirichletAllocation(n_topics = 5, learning_method='online')
 
@@ -87,20 +104,26 @@ lda_non.fit(tfidf_nphy)
 tf_feature_names = tfidf_vectorizer.get_feature_names()
 print_top_words(lda_non, tf_feature_names, 10)
 
+# Using the trained LDA Model to predict topics distribution for all responses
 non_phy = tfidf_vectorizer.transform(data['non_physical_description'])
 topics_dist = np.matrix(lda_non.transform(non_phy))
 
 
 #%%
+# ----------------------
 # Fit physical data
+# ----------------------
+
+# train the model again for the physical descriptions
 tfidf_vectorizer = TfidfVectorizer(stop_words = stop_words)
 lda_phy = LatentDirichletAllocation(n_topics = 20, learning_method='online')
 
-# Fit non-physical data
+# Fit physical data
 tfidf_phy = tfidf_vectorizer.fit_transform(physical_description)
 lda_phy.fit(tfidf_phy)
 tf_feature_names = tfidf_vectorizer.get_feature_names()
 print_top_words(lda_phy, tf_feature_names, 10)
 
+# Using the trained LDA Model to predict topics distribution for all responses
 physical = tfidf_vectorizer.transform(data['physical_description'])
 topics_dist_phy = np.matrix(lda_phy.transform(physical))
