@@ -48,8 +48,8 @@ non_phy = tfidf_vectorizer.transform(data['non_physical_description'])
 # Grid Search Testing Version 2
 # ------------------------------
 
-def entropy(data):    
-    entropy = [sc.stats.entropy(dist) for dist in data]
+def entropy(data, base):    
+    entropy = [sc.stats.entropy(dist, base=base) for dist in data]
     average_entropy = sum(entropy)/len(entropy)
     return average_entropy
 
@@ -69,15 +69,15 @@ def lda_model(data_by_image, data, num_topics, d_t_p, t_w_p):
     lda = LatentDirichletAllocation(n_components = num_topics, learning_method='online', doc_topic_prior = d_t_p, topic_word_prior = t_w_p)
     lda.fit(data_by_image)
     topics_dist = lda.transform(data)
-    avg_entropy = entropy(topics_dist)
+    avg_entropy = entropy(topics_dist, num_topics)
     avg_cos_sim = cosine_sim(topics_dist)
-    return str(num_topics) + ',' +  str(d_t_p) + ',' + str(t_w_p) + ',' + str(avg_entropy) + ',' + str(avg_cos_sim)
+    return str(num_topics) + ',' +  str(d_t_p) + ',' + str(t_w_p) + ',' + str(avg_entropy) + ',' + str(avg_cos_sim) + '\n'
 
 def grid_search(data_by_image, data):
     file = open('D:/School Work/Data Science Project/grid-search-results.txt', 'w')
-    for num_topics in np.arange(5, 15, 5):
-        for d_t_p in np.arange(1,3,0.5):
-            for t_w_p in np.arange(1,3,0.5):
+    for num_topics in np.arange(5, 27, 2):
+        for d_t_p in np.arange(0,1.05,0.05):
+            for t_w_p in np.arange(0,1.05,0.05):
                 result = lda_model(data_by_image, data, num_topics, d_t_p, t_w_p)
                 file.write(result)
     file.close()
@@ -85,3 +85,11 @@ def grid_search(data_by_image, data):
 start=datetime.now()
 grid_search(tfidf_nphy, non_phy)
 print (datetime.now()-start)
+
+#%%
+# -----------------------------------------
+# Visualization of the grid search results
+# -----------------------------------------
+results = pd.read_csv('D:/School Work/Data Science Project/grid-search-results.txt', sep = ',', names = ['Topic_Num', 'document_prior', 'topic_prior', 'entropy', 'cosine_sim'])
+
+sns.regplot(x='entropy', y = 'cosine_sim', data = results, scatter=True, fit_reg=False)
